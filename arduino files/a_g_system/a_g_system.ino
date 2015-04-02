@@ -5,64 +5,40 @@
    Fourth Year BSc Computer Science Project
    The Automated Greenhouse Monitoring System (Temperature and Humidity Control)
 */
+#include <crop.h>
 #include <idDHT11.h>
 #include <Wire.h>
-#include <LCD.h>
-#include <LiquidCrystal_I2C.h>
-                      
-#define I2C_ADDR  0x27 //Define the I2C Address where the PCF8574A is
 
-float temp;
-int tempPin = 0;
+#define TIMEOUT  5000;
 
 // The DHT11 sensor
 int idDHT11pin = 2; // Digital pin for communications with the DHT11 sensor
 int idDHT11intNumber = 0;
 
-// The actuators
-int fanIn      = 11; // Input fan connected to pwm pin 11
-int humfan     = 10; // Fan for the humidifier
-int fanOut     = 9; // Exhaust fan connected to pwm pin 10
-int heater     = 6; // The heater connected to pwm pin 9
-int humidifier = 5; // The humidifier connected to pwm pin 6
-
 // Declarations
 void dht11_wrapper(); // the wrapper must be declared before the lib initialization
 
-#define BACKLIGHT_PIN  3
-#define En_pin  2
-#define Rw_pin  1
-#define Rs_pin  0
-#define D4_pin  4
-#define D5_pin  5
-#define D6_pin  6
-#define D7_pin  7
-
 // Instantiate the Libs
 idDHT11 DHT11(idDHT11pin, idDHT11intNumber, dht11_wrapper);
-LiquidCrystal_I2C  lcd(I2C_ADDR, En_pin, Rw_pin, Rs_pin, D4_pin, D5_pin, D6_pin, D7_pin);
+
+// The actuators
+int fanIn      = 11;    // Input fan connected to pwm pin 11
+int humfan     = 10;    // Fan for the humidifier
+int fanOut     = 9;     // Exhaust fan connected to pwm pin 10
+int heater     = 6;     // The heater connected to pwm pin 9
+int humidifier = 5;     // The humidifier connected to pwm pin 6
+
+int option = 0;
+int junk = 0;
+int choice = 0;
+
+// Crop objects
+BEANS beans;
+MAIZE maize;
 
 void setup()
 {
   Serial.begin(9600); // Specify the speed at which the serial communication will be carried
-  lcd.begin(16,2);  //state the type of LCD in use
-  
-  temp = analogRead(tempPin);
-  temp = (((temp * 0.48828125) - 32) * 5)/9;
-
-  // Switch on the backlight
-  lcd.setBacklightPin(BACKLIGHT_PIN, POSITIVE);
-  lcd.setBacklight(HIGH);
-  lcd.home();
-
-  // Display welcome message
-  lcd.setCursor(0,0); //first line
-  lcd.print("AUTO GREENHSE: ");
-  lcd.setCursor(0,1);  // go to the second line
-  lcd.print("TEMP. & HUM CTRL");
-  delay(2000);
-  lcd.clear();
-  delay(2000);
   
   // The Actuators
   pinMode(fanIn, OUTPUT);
@@ -70,100 +46,104 @@ void setup()
   pinMode(heater, OUTPUT);
   pinMode(humidifier, OUTPUT);
   pinMode(humfan, OUTPUT);
+  
+  Serial.println("Select the crop in the greenhouse from the following list");
+  Serial.println("1. \tBeans");
+  Serial.println("2. \tMaize\n");
+  while (Serial.available() == 0);{
+    option = Serial.parseInt();
+    while (option < 1 || option > 2){
+      Serial.println("You have made an invalid selection!");
+      Serial.println("Please select a valid option from the following list:");
+      Serial.println("1. \tBeans");
+      Serial.println("2. \tMaize\n"); 
+      option = Serial.parseInt();     
+    }
+    Serial.print("Option = ");
+    Serial.println(option, DEC);
+    while (Serial.available() > 0) {
+      // Clear the keyboard buffer
+      junk = Serial.read() - '0';
+    }
+  }
+  
+  if (option == 1) {
+    Serial.println("At what stage of growth are the beans?");
+    Serial.println("1. \tGermination Stage");
+    Serial.println("2. \tSeedling Stage");
+    while (Serial.available() == 0);{
+      choice = Serial.parseInt();
+      while (choice < 1 || choice > 2){
+        Serial.println("You have made an invalid selection!");
+        Serial.println("Please select a valid option from the following list:");
+        Serial.println("1. \tGermination Stage");
+        Serial.println("2. \tSeedling Stage");
+        choice = Serial.parseInt();
+      }
+      Serial.print("Choice = ");
+      Serial.println(choice, DEC);
+      while (Serial.available() > 0){
+        // Clear keyboard buffer
+        junk = Serial.read() - '0';
+      }
+    }
+  }
+  
+    else if (option == 2) {
+    Serial.println("At what stage of growth are the maize?");
+    Serial.println("1. \tGermination Stage");
+    Serial.println("2. \tSeedling Stage");
+    while (Serial.available() == 0);{
+      choice = Serial.parseInt();
+      while (choice < 1 || choice > 2){
+        Serial.println("You have made an invalid selection!");
+        Serial.println("Please select a valid option from the following list:");
+        Serial.println("1. \tGermination Stage");
+        Serial.println("2. \tSeedling Stage");
+        choice = Serial.parseInt();
+      }
+      Serial.print("Choice = ");
+      Serial.println(choice, DEC);
+      while (Serial.available() > 0){
+        // Clear keyboard buffer
+        junk = Serial.read() - '0';
+      }
+    }
+  }  
 }
-
-/* This wrapper is responsible for calling the DHT11 Library
-   It must be defined in the following way in order for it to work
-*/
 void dht11_wrapper()
 {
   DHT11.isrCallback();
 }
-
 void loop()
 {
-  lcd.clear();
-  lcd.setCursor(0,0);
-  lcd.print("READ SENSOR....");
-  lcd.setCursor(0,1);
-  lcd.print("STATUS:");
+  Serial.print("READ SENSOR....");
+  Serial.print("STATUS:");
   
   int result = DHT11.acquireAndWait();
   switch (result)
   {
   case IDDHTLIB_OK:
-    lcd.print("OK");
-    delay(3000);
-    lcd.clear();
-    delay(2000);
+    Serial.print("OK");
     break;
   default: 
-    lcd.print("!!!");
-    delay(3000);
-    lcd.clear();
-    delay(2000); 
+    Serial.print("!!!"); 
     break;
-  }  
+  }   
+  Serial.print("TEMP:");
+  Serial.print(DHT11.getCelsius(),2);
+  Serial.print("oC");
+  Serial.print("HUM:");
+  Serial.print(DHT11.getHumidity(),2);
+  Serial.print(" %");
   
-  lcd.clear();
-  lcd.setCursor(2,0);
-  lcd.print("TEMP:");
-  lcd.print(DHT11.getCelsius(),2);
-  lcd.print("oC");
-  lcd.setCursor(3,1);
-  lcd.print("HUM:");
-  lcd.print(DHT11.getHumidity(),2);
-  lcd.print(" %");
-  delay(4000);
-  
-  //The Actuators
-  if (DHT11.getCelsius() >= 31.00){
-    digitalWrite(fanIn, HIGH);
-    digitalWrite(heater, LOW);
-  }
-  else{
-    digitalWrite(fanIn, LOW);
-    digitalWrite(heater, HIGH);
-  }
-  
-  if(temp >= 31.00){
-    digitalWrite(humfan, HIGH);
-    digitalWrite(humidifier, LOW);
-  }
-  else if(temp < 31.00){
-    if (temp > 25){
-      digitalWrite(humfan, HIGH);
-      digitalWrite(humidifier, LOW);
-    }
-    else{
-      digitalWrite(humfan, LOW);
-      digitalWrite(heater, LOW);
-    }
-  }
-  digitalWrite(fanOut, HIGH);
-  delay(10000);
-  digitalWrite(fanOut, LOW);
-  delay(10000);
-  
-  if (DHT11.getHumidity() >= 45.00){
-    digitalWrite(fanIn, HIGH);
-    digitalWrite(humfan, LOW);
-    digitalWrite(humidifier, LOW);
-  }
-  else{
-    digitalWrite(fanIn, LOW);
-    digitalWrite(humfan, HIGH);
-    digitalWrite(humidifier, HIGH);
-  }
-  if(DHT11.getDewPoint() <= 10.00){
-    digitalWrite(humidifier, HIGH);
-    digitalWrite(humfan, HIGH);
-    digitalWrite(fanIn, HIGH);
-  }
-  else{
-    digitalWrite(humidifier, LOW);
-    digitalWrite(humfan, LOW);
-    digitalWrite(fanIn, HIGH);
-  }
+  if (option == 1 && choice == 1)
+    beans.set_beans_s1 (DHT11.getCelsius(), DHT11.getHumidity(), fanIn, fanOut, humfan, heater, humidifier);
+  else if (option == 1 && choice == 2)
+    beans.set_beans_s2 (DHT11.getCelsius(), DHT11.getHumidity(), fanIn, fanOut, humfan, heater, humidifier);
+  else if (option == 2 && choice == 1)
+    maize.set_maize_s1 (DHT11.getCelsius(), DHT11.getHumidity(), fanIn, fanOut, humfan, heater, humidifier);
+  else if (option == 2 && choice == 2)
+    maize.set_maize_s2 (DHT11.getCelsius(), DHT11.getHumidity(), fanIn, fanOut, humfan, heater, humidifier);
 }
 
