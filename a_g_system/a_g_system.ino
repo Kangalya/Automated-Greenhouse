@@ -10,19 +10,19 @@
 int selectcrop();
 int actuators();
 int reader();
-//int activate();
-//int show();
+int activate();
+int show();
 
 void setup()
 {
   selectcrop();
   actuators();
-//  activate();
+  activate();
 }
 
 void loop()
 {
    reader();
-//  show();
+   show();
 }
 
